@@ -1513,6 +1513,7 @@ lws_socket_bind(struct lws_vhost *vhost, lws_sockfd_type sockfd, int port,
 #endif
 #ifdef LWS_USE_IPV6
 	struct sockaddr_in6 serv_addr6;
+	struct sockaddr_in6 sin_addr6;
 #endif
 	struct sockaddr_in serv_addr4;
 	socklen_t len = sizeof(struct sockaddr);
@@ -1554,6 +1555,8 @@ lws_socket_bind(struct lws_vhost *vhost, lws_sockfd_type sockfd, int port,
 			char ip[NI_MAXHOST];
 			unsigned int i;
 
+#if defined(WIN32) || defined(_WIN32)
+#else
 			getifaddrs(&addrs);
 			for (addr = addrs; addr; addr = addr->ifa_next) {
 				if (!addr->ifa_addr ||
@@ -1579,6 +1582,7 @@ lws_socket_bind(struct lws_vhost *vhost, lws_sockfd_type sockfd, int port,
 				}
 			}
 			freeifaddrs(addrs);
+#endif
 		}
 
 		serv_addr6.sin6_family = AF_INET6;
@@ -1615,11 +1619,25 @@ lws_socket_bind(struct lws_vhost *vhost, lws_sockfd_type sockfd, int port,
 				sockfd, port, n, LWS_ERRNO);
 		return -1;
 	}
-
-	if (getsockname(sockfd, (struct sockaddr *)&sin, &len) == -1)
-		lwsl_warn("getsockname: %s\n", strerror(LWS_ERRNO));
+	
+#ifdef LWS_USE_IPV6
+	if (LWS_IPV6_ENABLED(vhost)) {
+		len = sizeof(sin_addr6);
+		if (getsockname(sockfd, (struct sockaddr *)&sin_addr6, &len) == -1)
+		{
+			lwsl_warn("getsockname: %s\n", strerror(LWS_ERRNO));
+		}
+		else
+			port = ntohs(sin_addr6.sin6_port);
+	}
 	else
-		port = ntohs(sin.sin_port);
+#endif
+	{
+		if (getsockname(sockfd, (struct sockaddr *)&sin, &len) == -1)
+			lwsl_warn("getsockname: %s\n", strerror(LWS_ERRNO));
+		else
+			port = ntohs(sin.sin_port);
+	}
 #endif
 
 	return port;
