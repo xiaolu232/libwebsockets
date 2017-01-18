@@ -342,10 +342,6 @@ lws_context_init_server_ssl(struct lws_context_creation_info *info,
 		SSL_CTX_set_cipher_list(vhost->ssl_ctx,
 						info->ssl_cipher_list);
 
-#ifdef SSL_MODE_RELEASE_BUFFERS
-	SSL_CTX_set_mode(vhost->ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
-#endif
-
 	/* as a server, are we requiring clients to identify themselves? */
 
 	if (lws_check_opt(info->options,
